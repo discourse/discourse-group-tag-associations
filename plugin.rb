@@ -17,55 +17,51 @@ PLUGIN_NAME ||= 'DiscourseGroupTagAssociations'
 after_initialize do
   require_dependency File.expand_path('../app/controllers/groups_controller.rb', __FILE__)
 
+  add_to_class(:group, :set_tag_associations) do
+    GroupTagAssociation.batch_set(self, @associated_tags)
+  end
+
+  add_to_class(:group, "associated_tags=") do |tag_names|
+    @associated_tags = tag_names
+  end
+
+  add_to_class(:group, :associated_tags) do
+    GroupTagAssociation.where(group_id: id)
+      .joins(:tag)
+      .pluck(:name)
+  end
+
+  add_to_class(:group, :posts_for) do |guardian, opts = nil|
+    opts ||= {}
+    result = Post.left_outer_joins(:topic, user: :groups, topic: [:category, { topic_tags: :tag }])
+      .preload(:topic, user: :groups, topic: [:category, { topic_tags: :tag }])
+      .references(:posts, :topics, :category, { topic_tags: :tag })
+      .where('topics.visible')
+      .where("(topics.archetype <> :pm AND groups.id = :id AND post_type IN (:type)) OR tags.name IN (:tags)",
+        pm: Archetype.private_message, id: id, type: [Post.types[:regular], Post.types[:moderator_action]], tags: associated_tags)
+
+    if opts[:category_id].present?
+      result = result.where('topics.category_id = ?', opts[:category_id].to_i)
+    end
+
+    result = guardian.filter_allowed_categories(result)
+    result = result.where('posts.id < ?', opts[:before_post_id].to_i) if opts[:before_post_id]
+    result.order('posts.created_at desc')
+  end
+
   Group.class_eval do
     after_commit :set_tag_associations, on: [:create, :update]
     has_many :group_tag_associations, dependent: :destroy
+  end
 
-    define_method("associated_tags=") do |tag_names|
-      @associated_tags = tag_names
-    end
+  add_to_class(:topic_query, :list_group_topics) do |group|
+    list = default_results.left_outer_joins(topic_tags: :tag).where("
+      topics.user_id IN (
+        SELECT user_id FROM group_users gu WHERE gu.group_id = #{group.id.to_i}
+      )
+      OR tags.name IN (?)", Group.find(group.id.to_i).associated_tags)
 
-    def set_tag_associations
-      if @associated_tags
-        GroupTagAssociation.batch_set(self, @associated_tags)
-      end
-    end
-
-    def associated_tags
-      GroupTagAssociation.where(group_id: id)
-        .joins(:tag)
-        .pluck(:name)
-    end
-
-    def posts_for(guardian, opts = nil)
-      opts ||= {}
-      result = Post.left_outer_joins(:topic, user: :groups, topic: [:category, { topic_tags: :tag }])
-        .preload(:topic, user: :groups, topic: [:category, { topic_tags: :tag }])
-        .references(:posts, :topics, :category, { topic_tags: :tag })
-        .where('topics.visible')
-        .where("(topics.archetype <> :pm AND groups.id = :id AND post_type IN (:type)) OR tags.name IN (:tags)",
-          pm: Archetype.private_message, id: id, type: [Post.types[:regular], Post.types[:moderator_action]], tags: associated_tags)
-
-      if opts[:category_id].present?
-        result = result.where('topics.category_id = ?', opts[:category_id].to_i)
-      end
-
-      result = guardian.filter_allowed_categories(result)
-      result = result.where('posts.id < ?', opts[:before_post_id].to_i) if opts[:before_post_id]
-      result.order('posts.created_at desc')
-    end
-
-    TopicQuery.class_eval do
-      def list_group_topics(group)
-        list = default_results.left_outer_joins(topic_tags: :tag).where("
-          topics.user_id IN (
-            SELECT user_id FROM group_users gu WHERE gu.group_id = #{group.id.to_i}
-          )
-          OR tags.name IN (?)", Group.find(group.id.to_i).associated_tags)
-
-        create_list(:group_topics, {}, list)
-      end
-    end
+    create_list(:group_topics, {}, list)
   end
 
   add_to_serializer(:group_show, :associated_tags) do

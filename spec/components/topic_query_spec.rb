@@ -3,6 +3,10 @@
 require 'rails_helper'
 
 describe TopicQuery do
+  before do
+    SiteSetting.group_tag_associations_enabled = true
+  end
+
   describe '#list_group_topics' do
     fab!(:group) { Fabricate(:group) }
 

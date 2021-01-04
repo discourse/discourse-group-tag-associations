@@ -6,31 +6,14 @@ class GroupTagAssociation < ActiveRecord::Base
 
   def self.batch_set(group, tag_names)
     tag_names ||= []
-    changed = false
+    self.where(group: group).destroy_all
 
-    records = self.where(group: group)
-    old_ids = records.pluck(:tag_id)
-
-    tag_ids = tag_names.empty? ? [] : Tag.where_name(tag_names).pluck(:id)
-
-    Tag.where_name(tag_names).joins(:target_tag).each do |tag|
-      tag_ids[tag_ids.index(tag.id)] = tag.target_tag_id
+    if tag_names.length > 0
+      tag_ids = Set.new(Tag.where_name(tag_names).pluck(:id))
+      tag_ids.each do |id|
+        self.create!(group: group, tag_id: id)
+      end
     end
-
-    tag_ids.uniq!
-
-    remove = (old_ids - tag_ids)
-    if remove.present?
-      records.where('tag_id in (?)', remove).destroy_all
-      changed = true
-    end
-
-    (tag_ids - old_ids).each do |id|
-      self.create!(group: group, tag_id: id)
-      changed = true
-    end
-
-    changed
   end
 end
 

@@ -3,6 +3,10 @@
 require 'rails_helper'
 
 describe GroupsController do
+  before do
+    SiteSetting.group_tag_associations_enabled = true
+  end
+
   fab!(:user) { Fabricate(:user) }
   let(:group) { Fabricate(:group, users: [user]) }
 
