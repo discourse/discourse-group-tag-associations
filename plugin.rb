@@ -31,27 +31,37 @@ after_initialize do
       .pluck(:name)
   end
 
-  add_to_class(:group, :posts_for) do |guardian, opts = nil|
-    opts ||= {}
-    result = Post.left_outer_joins(:topic, user: :groups, topic: [:category, { topic_tags: :tag }])
-      .preload(:topic, user: :groups, topic: [:category, { topic_tags: :tag }])
-      .references(:posts, :topics, :category, { topic_tags: :tag })
-      .where('topics.visible')
-      .where("(topics.archetype <> :pm AND groups.id = :id AND post_type IN (:type)) OR tags.name IN (:tags)",
-        pm: Archetype.private_message, id: id, type: [Post.types[:regular], Post.types[:moderator_action]], tags: associated_tags)
-
-    if opts[:category_id].present?
-      result = result.where('topics.category_id = ?', opts[:category_id].to_i)
-    end
-
-    result = guardian.filter_allowed_categories(result)
-    result = result.where('posts.id < ?', opts[:before_post_id].to_i) if opts[:before_post_id]
-    result.order('posts.created_at desc')
-  end
+  # if SiteSetting.group_tag_associations_enabled
+  #   add_to_class(:group, :posts_for) do |guardian, opts = nil|
+  #   end
+  # end
 
   Group.class_eval do
     after_commit :set_tag_associations, on: [:create, :update]
     has_many :group_tag_associations, dependent: :destroy
+    alias_method :discourse_posts_for, :posts_for
+
+    def posts_for(guardian, opts = nil)
+      if SiteSetting.group_tag_associations_enabled
+        opts ||= {}
+        result = Post.left_outer_joins(:topic, user: :groups, topic: [:category, { topic_tags: :tag }])
+          .preload(:topic, user: :groups, topic: [:category, { topic_tags: :tag }])
+          .references(:posts, :topics, :category, { topic_tags: :tag })
+          .where('topics.visible')
+          .where("(topics.archetype <> :pm AND groups.id = :id AND post_type IN (:type)) OR tags.name IN (:tags)",
+            pm: Archetype.private_message, id: id, type: [Post.types[:regular], Post.types[:moderator_action]], tags: associated_tags)
+
+        if opts[:category_id].present?
+          result = result.where('topics.category_id = ?', opts[:category_id].to_i)
+        end
+
+        result = guardian.filter_allowed_categories(result)
+        result = result.where('posts.id < ?', opts[:before_post_id].to_i) if opts[:before_post_id]
+        result.order('posts.created_at desc')
+      else
+        discourse_posts_for(guardian, opts)
+      end
+    end
   end
 
   add_to_class(:topic_query, :list_group_topics) do |group|
