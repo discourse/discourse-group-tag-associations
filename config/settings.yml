@@ -1,0 +1,3 @@
+plugins:
+  group_tag_associations_enabled:
+    default: false
