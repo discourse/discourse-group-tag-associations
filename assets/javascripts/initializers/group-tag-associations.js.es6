@@ -8,7 +8,7 @@ export default {
         asJSON() {
           const attrs = this._super(...arguments);
           if (this.associated_tags) {
-            attrs["associated_tags"] = this.associated_tags;
+            attrs.associated_tags = this.associated_tags;
           }
           return attrs;
         },
