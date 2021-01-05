@@ -31,11 +31,6 @@ after_initialize do
       .pluck(:name)
   end
 
-  # if SiteSetting.group_tag_associations_enabled
-  #   add_to_class(:group, :posts_for) do |guardian, opts = nil|
-  #   end
-  # end
-
   Group.class_eval do
     after_commit :set_tag_associations, on: [:create, :update]
     has_many :group_tag_associations, dependent: :destroy
@@ -64,14 +59,22 @@ after_initialize do
     end
   end
 
-  add_to_class(:topic_query, :list_group_topics) do |group|
-    list = default_results.left_outer_joins(topic_tags: :tag).where("
-      topics.user_id IN (
-        SELECT user_id FROM group_users gu WHERE gu.group_id = #{group.id.to_i}
-      )
-      OR tags.name IN (?)", Group.find(group.id.to_i).associated_tags)
+  TopicQuery.class_eval do
+    alias_method :discourse_list_group_topics, :list_group_topics
 
-    create_list(:group_topics, {}, list)
+    def list_group_topics(group)
+      if SiteSetting.group_tag_associations_enabled
+        list = default_results.left_outer_joins(topic_tags: :tag).where("
+          topics.user_id IN (
+            SELECT user_id FROM group_users gu WHERE gu.group_id = #{group.id.to_i}
+          )
+          OR tags.name IN (?)", Group.find(group.id.to_i).associated_tags)
+
+        create_list(:group_topics, {}, list)
+      else
+        discourse_list_group_topics(group)
+      end
+    end
   end
 
   add_to_serializer(:group_show, :associated_tags) do
