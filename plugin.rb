@@ -39,20 +39,25 @@ after_initialize do
     def posts_for(guardian, opts = nil)
       if SiteSetting.group_tag_associations_enabled
         opts ||= {}
-        result = Post.left_outer_joins(:topic, user: :groups, topic: [:category, { topic_tags: :tag }])
-          .preload(:topic, user: :groups, topic: [:category, { topic_tags: :tag }])
-          .references(:posts, :topics, :category, { topic_tags: :tag })
+        default_results = discourse_posts_for(guardian, opts)
+
+        tag_results = Post.left_outer_joins(:topic, topic: { topic_tags: :tag })
+          .preload(:topic, topic: { topic_tags: :tag })
+          .references(:posts, :topics, { topic_tags: :tag })
           .where('topics.visible')
-          .where("(topics.archetype <> :pm AND groups.id = :id AND post_type IN (:type)) OR tags.name IN (:tags)",
-            pm: Archetype.private_message, id: id, type: [Post.types[:regular], Post.types[:moderator_action]], tags: associated_tags)
+          .where('topics.archetype <> ?', Archetype.private_message)
+          .where(post_type: [Post.types[:regular], Post.types[:moderator_action]])
+          .where("tags.name IN (:tags)", tags: associated_tags)
 
         if opts[:category_id].present?
-          result = result.where('topics.category_id = ?', opts[:category_id].to_i)
+          tag_results = tag_results.where('topics.category_id = ?', opts[:category_id].to_i)
         end
 
-        result = guardian.filter_allowed_categories(result)
-        result = result.where('posts.id < ?', opts[:before_post_id].to_i) if opts[:before_post_id]
-        result.order('posts.created_at desc')
+        tag_results = guardian.filter_allowed_categories(tag_results)
+        tag_results = tag_results.where('posts.id < ?', opts[:before_post_id].to_i) if opts[:before_post_id]
+        tag_results.order('posts.created_at desc')
+
+        Post.from("((#{default_results.to_sql}) UNION (#{tag_results.to_sql})) AS posts")
       else
         discourse_posts_for(guardian, opts)
       end
