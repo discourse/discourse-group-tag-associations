@@ -33,7 +33,7 @@ describe Group do
 
     fab!(:tag1) { Fabricate(:tag, name: "fun") }
     fab!(:tag2) { Fabricate(:tag, name: "fun2") }
-    fab!(:tagged_topic) { Fabricate(:topic, tags: [tag1, tag2]) }
+    fab!(:tagged_topic) { Fabricate(:topic, tags: [tag1]) }
     fab!(:tagged_post) { Fabricate(:post, topic: tagged_topic) }
 
     it "includes a post with associated tags" do
@@ -43,7 +43,7 @@ describe Group do
       expect(posts).to include(tagged_post)
     end
 
-    it "includes a mix of groups posts and posts with associated tags" do
+    it "includes only associated tags" do
       p = Fabricate(:post)
       group.add(p.user)
       group.update(associated_tags: [tag1.name])
@@ -51,7 +51,15 @@ describe Group do
       posts = group.posts_for(Guardian.new)
 
       expect(posts).to include(tagged_post)
-      expect(posts).to include(p)
+      expect(posts).not_to include(p)
+    end
+
+    it "is empty if group has associated tags but no posts have been tagged" do
+      group.update(associated_tags: [tag2.name])
+
+      posts = group.posts_for(Guardian.new)
+
+      expect(posts).to be_empty
     end
   end
 

@@ -37,11 +37,10 @@ after_initialize do
     alias_method :discourse_posts_for, :posts_for
 
     def posts_for(guardian, opts = nil)
-      if SiteSetting.group_tag_associations_enabled
+      if SiteSetting.group_tag_associations_enabled && associated_tags.present?
         opts ||= {}
-        default_results = discourse_posts_for(guardian, opts)
 
-        tag_results = Post.left_outer_joins(:topic, topic: { topic_tags: :tag })
+        tag_results = Post.joins(:topic, topic: { topic_tags: :tag })
           .preload(:topic, topic: { topic_tags: :tag })
           .references(:posts, :topics, { topic_tags: :tag })
           .where('topics.visible')
@@ -56,8 +55,6 @@ after_initialize do
         tag_results = guardian.filter_allowed_categories(tag_results)
         tag_results = tag_results.where('posts.id < ?', opts[:before_post_id].to_i) if opts[:before_post_id]
         tag_results.order('posts.created_at desc')
-
-        Post.from("((#{default_results.to_sql}) UNION (#{tag_results.to_sql})) AS posts")
       else
         discourse_posts_for(guardian, opts)
       end
@@ -68,13 +65,10 @@ after_initialize do
     alias_method :discourse_list_group_topics, :list_group_topics
 
     def list_group_topics(group)
-      if SiteSetting.group_tag_associations_enabled
-        list = default_results.left_outer_joins(topic_tags: :tag).where("
-          topics.user_id IN (
-            SELECT user_id FROM group_users gu WHERE gu.group_id = #{group.id.to_i}
-          )
-          OR tags.name IN (?)", Group.find(group.id.to_i).associated_tags)
+      associated_tags = Group.find(group.id.to_i).associated_tags
 
+      if SiteSetting.group_tag_associations_enabled && associated_tags.present?
+        list = default_results.joins(topic_tags: :tag).where("tags.name IN (?)", associated_tags)
         create_list(:group_topics, {}, list)
       else
         discourse_list_group_topics(group)
