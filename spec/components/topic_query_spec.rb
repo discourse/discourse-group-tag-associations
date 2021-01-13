@@ -62,6 +62,7 @@ describe TopicQuery do
 
     fab!(:tag1) { Fabricate(:tag, name: "fun") }
     fab!(:tag2) { Fabricate(:tag, name: "fun2") }
+    fab!(:tag_unused) { Fabricate(:tag, name: "unused") }
     fab!(:tag1_topic) { Fabricate(:topic, tags: [tag1]) }
     fab!(:tag2_topic) { Fabricate(:topic, tags: [tag2]) }
 
@@ -69,8 +70,14 @@ describe TopicQuery do
       group.update(associated_tags: [tag1.name, tag2.name])
       topics = TopicQuery.new(user).list_group_topics(group).topics
 
-      expect(topics).to contain_exactly(topic1, topic2, topic3, topic6, tag1_topic, tag2_topic)
+      expect(topics).to contain_exactly(tag1_topic, tag2_topic)
+    end
+
+    it 'should be empty if group has an associated tag but no topics are tagged' do
+      group.update(associated_tags: [tag_unused.name])
+      topics = TopicQuery.new(user).list_group_topics(group).topics
+
+      expect(topics).to be_empty
     end
   end
-
 end

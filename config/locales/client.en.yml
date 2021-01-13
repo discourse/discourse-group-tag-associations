@@ -2,4 +2,4 @@ en:
   js:
     group_tag_associations:
       title: "Associated Tags"
-      description: "Associating tags with this group allows for posts/topics with those tags to be displayed in the group activity page."
+      description: "If set, the group activity pages will only include posts/topics with these tags."
