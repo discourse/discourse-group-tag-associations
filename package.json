@@ -1,0 +1,10 @@
+{
+  "name": "discourse-group-tag-associations",
+  "version": "0.0.1",
+  "repository": "https://github.com/discourse/discourse-group-tag-associations",
+  "author": "Discourse",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint-config-discourse": "^3.4.0"
+  }
+}

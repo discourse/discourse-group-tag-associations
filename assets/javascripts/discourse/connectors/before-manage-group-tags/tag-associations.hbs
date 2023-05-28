@@ -4,10 +4,9 @@
 </div>
 
 <div class="control-group">
-  {{tag-chooser
-    tags=model.associated_tags
-    allowCreate=false
-    everyTag=true
-  }}
+  <TagChooser
+    @tags={{model.associated_tags}}
+    @allowCreate={{false}}
+    @everyTag={{true}}
+  />
 </div>
-
