@@ -8,8 +8,8 @@ class CreateGroupTagAssociations < ActiveRecord::Migration[6.0]
     end
 
     add_index :group_tag_associations,
-      [:group_id, :tag_id],
-      unique: true,
-      name: :idx_group_tag_associations_unique
+              %i[group_id tag_id],
+              unique: true,
+              name: :idx_group_tag_associations_unique
   end
 end

@@ -10,9 +10,7 @@ class GroupTagAssociation < ActiveRecord::Base
 
     if tag_names.length > 0
       tag_ids = Set.new(Tag.where_name(tag_names).pluck(:id))
-      tag_ids.each do |id|
-        self.create!(group: group, tag_id: id)
-      end
+      tag_ids.each { |id| self.create!(group: group, tag_id: id) }
     end
   end
 end
