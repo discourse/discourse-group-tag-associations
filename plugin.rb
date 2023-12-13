@@ -8,31 +8,25 @@
 
 enabled_site_setting :group_tag_associations_enabled
 
-PLUGIN_NAME ||= 'DiscourseGroupTagAssociations'
+PLUGIN_NAME ||= "DiscourseGroupTagAssociations"
 
-  %w[
-    ../app/models/group_tag_association.rb
-  ].each { |path| load File.expand_path(path, __FILE__) }
+%w[../app/models/group_tag_association.rb].each { |path| load File.expand_path(path, __FILE__) }
 
 after_initialize do
-  require_dependency File.expand_path('../app/controllers/groups_controller.rb', __FILE__)
+  require_dependency File.expand_path("../app/controllers/groups_controller.rb", __FILE__)
 
   add_to_class(:group, :set_tag_associations) do
     GroupTagAssociation.batch_set(self, @associated_tags)
   end
 
-  add_to_class(:group, "associated_tags=") do |tag_names|
-    @associated_tags = tag_names
-  end
+  add_to_class(:group, "associated_tags=") { |tag_names| @associated_tags = tag_names }
 
   add_to_class(:group, :associated_tags) do
-    GroupTagAssociation.where(group_id: id)
-      .joins(:tag)
-      .pluck(:name)
+    GroupTagAssociation.where(group_id: id).joins(:tag).pluck(:name)
   end
 
   Group.class_eval do
-    after_commit :set_tag_associations, on: [:create, :update]
+    after_commit :set_tag_associations, on: %i[create update]
     has_many :group_tag_associations, dependent: :destroy
     alias_method :discourse_posts_for, :posts_for
 
@@ -40,21 +34,25 @@ after_initialize do
       if SiteSetting.group_tag_associations_enabled && associated_tags.present?
         opts ||= {}
 
-        tag_results = Post.joins(:topic, topic: { topic_tags: :tag })
-          .preload(:topic, topic: { topic_tags: :tag })
-          .references(:posts, :topics, { topic_tags: :tag })
-          .where('topics.visible')
-          .where('topics.archetype <> ?', Archetype.private_message)
-          .where(post_type: [Post.types[:regular], Post.types[:moderator_action]])
-          .where("tags.name IN (:tags)", tags: associated_tags)
+        tag_results =
+          Post
+            .joins(:topic, topic: { topic_tags: :tag })
+            .preload(:topic, topic: { topic_tags: :tag })
+            .references(:posts, :topics, { topic_tags: :tag })
+            .where("topics.visible")
+            .where("topics.archetype <> ?", Archetype.private_message)
+            .where(post_type: [Post.types[:regular], Post.types[:moderator_action]])
+            .where("tags.name IN (:tags)", tags: associated_tags)
 
         if opts[:category_id].present?
-          tag_results = tag_results.where('topics.category_id = ?', opts[:category_id].to_i)
+          tag_results = tag_results.where("topics.category_id = ?", opts[:category_id].to_i)
         end
 
         tag_results = guardian.filter_allowed_categories(tag_results)
-        tag_results = tag_results.where('posts.id < ?', opts[:before_post_id].to_i) if opts[:before_post_id]
-        tag_results.order('posts.created_at desc')
+        tag_results = tag_results.where("posts.id < ?", opts[:before_post_id].to_i) if opts[
+          :before_post_id
+        ]
+        tag_results.order("posts.created_at desc")
       else
         discourse_posts_for(guardian, opts)
       end
@@ -77,8 +75,6 @@ after_initialize do
   end
 
   add_to_serializer(:group_show, :associated_tags) do
-    GroupTagAssociation.where(group_id: object.id)
-      .joins(:tag)
-      .pluck(:name)
+    GroupTagAssociation.where(group_id: object.id).joins(:tag).pluck(:name)
   end
 end

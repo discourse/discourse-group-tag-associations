@@ -1,13 +1,11 @@
 # frozen_string_literal: true
 
-require 'rails_helper'
+require "rails_helper"
 
 describe TopicQuery do
-  before do
-    SiteSetting.group_tag_associations_enabled = true
-  end
+  before { SiteSetting.group_tag_associations_enabled = true }
 
-  describe '#list_group_topics' do
+  describe "#list_group_topics" do
     fab!(:group) { Fabricate(:group) }
 
     let(:user) do
@@ -24,9 +22,7 @@ describe TopicQuery do
 
     fab!(:user3) { Fabricate(:user) }
 
-    fab!(:private_category) do
-      Fabricate(:private_category_with_definition, group: group)
-    end
+    fab!(:private_category) { Fabricate(:private_category_with_definition, group: group) }
 
     let!(:private_message_topic) { Fabricate(:private_message_post, user: user).topic }
     let!(:topic1) { Fabricate(:topic, user: user) }
@@ -36,13 +32,13 @@ describe TopicQuery do
     let!(:topic5) { Fabricate(:topic, user: user, visible: false) }
     let!(:topic6) { Fabricate(:topic, user: user2) }
 
-    it 'should return the right lists for anon user' do
+    it "should return the right lists for anon user" do
       topics = TopicQuery.new.list_group_topics(group).topics
 
       expect(topics).to contain_exactly(topic1, topic2, topic6)
     end
 
-    it 'should retun the right list for users in the same group' do
+    it "should retun the right list for users in the same group" do
       topics = TopicQuery.new(user).list_group_topics(group).topics
 
       expect(topics).to contain_exactly(topic1, topic2, topic3, topic6)
@@ -52,7 +48,7 @@ describe TopicQuery do
       expect(topics).to contain_exactly(topic1, topic2, topic3, topic6)
     end
 
-    it 'should return the right list for user not in the group' do
+    it "should return the right list for user not in the group" do
       topics = TopicQuery.new(user3).list_group_topics(group).topics
 
       expect(topics).to contain_exactly(topic1, topic2, topic6)
@@ -66,14 +62,14 @@ describe TopicQuery do
     fab!(:tag1_topic) { Fabricate(:topic, tags: [tag1]) }
     fab!(:tag2_topic) { Fabricate(:topic, tags: [tag2]) }
 
-    it 'should include topics with tags matching group associated tags' do
+    it "should include topics with tags matching group associated tags" do
       group.update(associated_tags: [tag1.name, tag2.name])
       topics = TopicQuery.new(user).list_group_topics(group).topics
 
       expect(topics).to contain_exactly(tag1_topic, tag2_topic)
     end
 
-    it 'should be empty if group has an associated tag but no topics are tagged' do
+    it "should be empty if group has an associated tag but no topics are tagged" do
       group.update(associated_tags: [tag_unused.name])
       topics = TopicQuery.new(user).list_group_topics(group).topics
 

@@ -1,11 +1,9 @@
 # frozen_string_literal: true
 
-require 'rails_helper'
+require "rails_helper"
 
 describe Group do
-  before do
-    SiteSetting.group_tag_associations_enabled = true
-  end
+  before { SiteSetting.group_tag_associations_enabled = true }
 
   let(:user) { Fabricate(:user) }
   let(:user2) { Fabricate(:user) }

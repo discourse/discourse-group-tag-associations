@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-require_dependency 'groups_controller'
+require_dependency "groups_controller"
 
 class GroupsController < ApplicationController
-
   private
+
   alias_method :original_group_params, :group_params
 
   def group_params(automatic: false)
@@ -15,5 +15,4 @@ class GroupsController < ApplicationController
       core_params
     end
   end
-
 end
