@@ -5,7 +5,7 @@ require "rails_helper"
 describe GroupsController do
   before { SiteSetting.group_tag_associations_enabled = true }
 
-  fab!(:user) { Fabricate(:user) }
+  fab!(:user)
   let(:group) { Fabricate(:group, users: [user]) }
 
   describe "#posts" do
@@ -33,7 +33,8 @@ describe GroupsController do
       get "/groups/#{group.name}/posts.json"
 
       expect(response.status).to eq(200)
-      expect(response.parsed_body.first["id"]).to eq(post.id)
+
+      expect(response.parsed_body["posts"].first["id"]).to eq(post.id)
     end
 
     fab!(:tag1) { Fabricate(:tag, name: "fun") }
@@ -48,7 +49,7 @@ describe GroupsController do
       get "/groups/#{group.name}/posts.json"
 
       expect(response.status).to eq(200)
-      expect(response.parsed_body.first["id"]).to eq(tagged_post.id)
+      expect(response.parsed_body["posts"].first["id"]).to eq(tagged_post.id)
     end
   end
 end
