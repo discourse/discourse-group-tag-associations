@@ -6,7 +6,7 @@ describe TopicQuery do
   before { SiteSetting.group_tag_associations_enabled = true }
 
   describe "#list_group_topics" do
-    fab!(:group) { Fabricate(:group) }
+    fab!(:group)
 
     let(:user) do
       user = Fabricate(:user)
