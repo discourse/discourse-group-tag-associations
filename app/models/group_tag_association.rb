@@ -19,9 +19,9 @@ end
 #
 # Table name: group_tag_associations
 #
-#  id                 :bigint           not null, primary key
-#  group_id           :integer          not null
-#  tag_id             :integer          not null
+#  id       :bigint           not null, primary key
+#  group_id :integer          not null
+#  tag_id   :integer          not null
 #
 # Indexes
 #
