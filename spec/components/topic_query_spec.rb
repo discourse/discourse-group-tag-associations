@@ -20,7 +20,7 @@ describe TopicQuery do
       user
     end
 
-    fab!(:user3) { Fabricate(:user) }
+    fab!(:user3, :user)
 
     fab!(:private_category) { Fabricate(:private_category_with_definition, group: group) }
 
