@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "rails_helper"
-
 describe Group do
   before { SiteSetting.group_tag_associations_enabled = true }
 
