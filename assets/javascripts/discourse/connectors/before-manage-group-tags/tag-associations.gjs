@@ -1,7 +1,8 @@
+/* eslint-disable ember/no-classic-components, ember/require-tagless-components */
 import Component from "@ember/component";
 import { classNames, tagName } from "@ember-decorators/component";
+import TagChooser from "discourse/select-kit/components/tag-chooser";
 import { i18n } from "discourse-i18n";
-import TagChooser from "select-kit/components/tag-chooser";
 
 @tagName("div")
 @classNames("before-manage-group-tags-outlet", "tag-associations")
