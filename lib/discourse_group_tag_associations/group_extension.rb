@@ -23,15 +23,7 @@ module DiscourseGroupTagAssociations
             .where(post_type: [Post.types[:regular], Post.types[:moderator_action]])
             .where("tags.name IN (:tags)", tags: associated_tags)
 
-        if opts[:category_id].present?
-          tag_results = tag_results.where("topics.category_id = ?", opts[:category_id].to_i)
-        end
-
-        tag_results = guardian.filter_allowed_categories(tag_results)
-        tag_results = tag_results.where("posts.id < ?", opts[:before_post_id].to_i) if opts[
-          :before_post_id
-        ]
-        tag_results.order("posts.created_at desc")
+        filter_posts_for_guardian(tag_results, guardian, opts)
       else
         super
       end
