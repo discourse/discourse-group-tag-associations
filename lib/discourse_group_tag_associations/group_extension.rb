@@ -10,7 +10,9 @@ module DiscourseGroupTagAssociations
     end
 
     def posts_for(guardian, opts = nil)
-      if SiteSetting.group_tag_associations_enabled && associated_tags.present?
+      associated_tag_names = associated_tags(guardian) if SiteSetting.group_tag_associations_enabled
+
+      if associated_tag_names.present?
         opts ||= {}
 
         tag_results =
@@ -21,7 +23,7 @@ module DiscourseGroupTagAssociations
             .where("topics.visible")
             .where("topics.archetype <> ?", Archetype.private_message)
             .where(post_type: [Post.types[:regular], Post.types[:moderator_action]])
-            .where("tags.name IN (:tags)", tags: associated_tags)
+            .where("tags.name IN (:tags)", tags: associated_tag_names)
 
         filter_posts_for_guardian(tag_results, guardian, opts)
       else

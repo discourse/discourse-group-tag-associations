@@ -19,13 +19,17 @@ after_initialize do
   require_relative "lib/discourse_group_tag_associations/groups_controller_extension"
 
   add_to_class(:group, :set_tag_associations) do
-    GroupTagAssociation.batch_set(self, @associated_tags)
+    GroupTagAssociation.batch_set(self, @associated_tags, @associated_tags_guardian)
   end
 
   add_to_class(:group, "associated_tags=") { |tag_names| @associated_tags = tag_names }
 
-  add_to_class(:group, :associated_tags) do
-    GroupTagAssociation.where(group_id: id).joins(:tag).pluck(:name)
+  add_to_class(:group, "associated_tags_guardian=") do |guardian|
+    @associated_tags_guardian = guardian
+  end
+
+  add_to_class(:group, :associated_tags) do |guardian = nil|
+    GroupTagAssociation.tag_names_for(self, guardian)
   end
 
   reloadable_patch do
@@ -34,7 +38,5 @@ after_initialize do
     GroupsController.prepend(DiscourseGroupTagAssociations::GroupsControllerExtension)
   end
 
-  add_to_serializer(:group_show, :associated_tags) do
-    GroupTagAssociation.where(group_id: object.id).joins(:tag).pluck(:name)
-  end
+  add_to_serializer(:group_show, :associated_tags) { object.associated_tags(scope) }
 end
