@@ -5,7 +5,7 @@ module DiscourseGroupTagAssociations
     extend ActiveSupport::Concern
 
     def list_group_topics(group)
-      associated_tags = Group.find(group.id.to_i).associated_tags
+      associated_tags = Group.find(group.id.to_i).associated_tags(guardian)
 
       if SiteSetting.group_tag_associations_enabled && associated_tags.present?
         list = default_results.joins(topic_tags: :tag).where("tags.name IN (?)", associated_tags)
