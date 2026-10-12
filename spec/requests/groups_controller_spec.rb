@@ -287,5 +287,47 @@ describe GroupsController do
 
       expect(associated_tag_ids).to include(hidden_tag.id)
     end
+
+    context "when clearing associated tags" do
+      before do
+        GroupTagAssociation.create!(group: owned_group, tag: public_tag)
+        GroupTagAssociation.create!(group: owned_group, tag: hidden_tag)
+      end
+
+      it "removes the tags a group owner can see but keeps hidden ones" do
+        sign_in(group_owner)
+
+        put "/groups/#{owned_group.id}.json", params: { group: { associated_tags: [] } }, as: :json
+
+        expect(response.status).to eq(200)
+        expect(GroupTagAssociation.where(group: owned_group).pluck(:tag_id)).to contain_exactly(
+          hidden_tag.id,
+        )
+      end
+
+      it "removes every tag for staff" do
+        sign_in(admin)
+
+        put "/groups/#{owned_group.id}.json", params: { group: { associated_tags: [] } }, as: :json
+
+        expect(response.status).to eq(200)
+        expect(GroupTagAssociation.where(group: owned_group)).to be_empty
+      end
+    end
+
+    it "ignores associated_tags when the plugin is disabled" do
+      SiteSetting.group_tag_associations_enabled = false
+      sign_in(admin)
+
+      put "/groups/#{owned_group.id}.json",
+          params: {
+            group: {
+              associated_tags: [public_tag.name],
+            },
+          }
+
+      expect(response.status).to eq(200)
+      expect(GroupTagAssociation.where(group: owned_group)).to be_empty
+    end
   end
 end
