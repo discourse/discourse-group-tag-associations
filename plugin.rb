@@ -8,6 +8,8 @@
 
 enabled_site_setting :group_tag_associations_enabled
 
+register_group_param({ associated_tags: [] })
+
 after_initialize do
   module ::DiscourseGroupTagAssociations
     PLUGIN_NAME = "discourse-group-tag-associations"
@@ -16,7 +18,7 @@ after_initialize do
   require_relative "app/models/group_tag_association"
   require_relative "lib/discourse_group_tag_associations/group_extension"
   require_relative "lib/discourse_group_tag_associations/topic_query_extension"
-  require_relative "lib/discourse_group_tag_associations/groups_controller_extension"
+  require_relative "lib/discourse_group_tag_associations/group_updater_extension"
 
   add_to_class(:group, :set_tag_associations) do
     GroupTagAssociation.batch_set(self, @associated_tags, @associated_tags_guardian)
@@ -35,7 +37,7 @@ after_initialize do
   reloadable_patch do
     Group.prepend(DiscourseGroupTagAssociations::GroupExtension)
     TopicQuery.prepend(DiscourseGroupTagAssociations::TopicQueryExtension)
-    GroupsController.prepend(DiscourseGroupTagAssociations::GroupsControllerExtension)
+    GroupUpdater.prepend(DiscourseGroupTagAssociations::GroupUpdaterExtension)
   end
 
   add_to_serializer(:group_show, :associated_tags) { object.associated_tags(scope) }
